@@ -24,25 +24,6 @@ const char* g_pGlVertexShader =
 "	gl_Position = vec4(position, 1.0);\n"
 "}\n";
 
-//const char* g_pGlFragmentShader =
-//"#version 400\n"
-//"varying vec2 fUvCoord;\n"
-//"uniform float fTime;\n"
-//"\n"
-//"void main()\n"
-//"{\n"
-//"	vec2 uv2 = fUvCoord * 4.0;\n"
-//"	for(int n = 0; n < 10; n++)\n"
-//"	{\n"
-//"		float i = float(n);\n"
-//"		uv2 += vec2(0.7 / i * sin(i * 2*cos(uv2.y+fTime) + fTime + 0.3 * i) + 0.8,\n"
-//"					0.4 / i * sin(i * 2*cos(uv2.x+fTime) + fTime + 0.3 * i) + 1.6);\n"
-//"	}\n"
-//"	gl_FragColor = vec4(0.5 * cos(uv2.y + fTime*2.0) + 0.5,\n"
-//"						0.5 * sin(uv2.y + 0.5*sin(2.0*fTime + uv2.y + uv2.x)) + 0.5,\n"
-//"						sin(fTime + uv2.x + uv2.y), 1.0);\n"
-//"}\n";
-
 const char* g_pGlFragShaderUniforms =
 "varying vec2 fUvCoord;\n"
 "uniform vec2 fResolution;\n"
@@ -54,6 +35,7 @@ const char* g_pGlFragShaderUniforms =
 "	mainShader(gl_FragColor);\n"
 "}\n";
 
+// Canvas shape (a rectangle shape)
 const float g_pRectShape[] = {
 	 1.0f,  1.0f,  0.0f,  1.0f,  1.0f,
 	 1.0f, -1.0f,  0.0f,  1.0f,  0.0f,
@@ -71,6 +53,7 @@ struct MainCanvas
 	MainCanvas(OpenGLContext& context, OpenGLShaderProgram& shaderProgram)
 		: openGLContext(context)
 	{
+		// Create vertex & index buffer
 		openGLContext.extensions.glGenBuffers(1, &vertexBuffer);
 		openGLContext.extensions.glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
 		openGLContext.extensions.glBufferData(GL_ARRAY_BUFFER, sizeof(g_pRectShape), g_pRectShape, GL_STATIC_DRAW);
@@ -78,17 +61,20 @@ struct MainCanvas
 		openGLContext.extensions.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
 		openGLContext.extensions.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(g_pIndicies), g_pIndicies, GL_STATIC_DRAW);
 
+		// Create a vertex attribute
 		position.reset(createAttribute(context, shaderProgram, "position"));
 		texCoord.reset(createAttribute(context, shaderProgram, "texCoord"));
 
-		fResolution.reset(createUniform(context, shaderProgram, "fResolution"));
-		fTime.reset(createUniform(context, shaderProgram, "fTime"));
-		fFps.reset(createUniform(context, shaderProgram, "fFps"));
-		iFrameCounter.reset(createUniform(context, shaderProgram, "iFrameCounter"));
+		// Create an uniform
+		fResolution.reset(createUniform(context, shaderProgram, "fResolution")); // Canvas resolution
+		fTime.reset(createUniform(context, shaderProgram, "fTime")); // Current time
+		fFps.reset(createUniform(context, shaderProgram, "fFps")); // FPS
+		iFrameCounter.reset(createUniform(context, shaderProgram, "iFrameCounter")); // Frame counter
 	}
 
 	~MainCanvas()
 	{
+		// Delete buffers
 		openGLContext.extensions.glDeleteBuffers(1, &vertexBuffer);
 		openGLContext.extensions.glDeleteBuffers(1, &indexBuffer);
 	}
@@ -97,9 +83,11 @@ struct MainCanvas
 	{
 		GLView* comp = dynamic_cast<GLView*>(openGLContext.getTargetComponent());
 
+		// Select our buffer
 		openGLContext.extensions.glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
 		openGLContext.extensions.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
 
+		// Set all uniforms into shader
 		if (fResolution.get())
 			fResolution->set((float)comp->getWidth(), (float)comp->getHeight());
 
@@ -112,13 +100,16 @@ struct MainCanvas
 		if (iFrameCounter.get())
 			iFrameCounter->set(comp->getFrameCounter());
 
+		// Create & enable vertex attributes
 		openGLContext.extensions.glVertexAttribPointer(position->attributeID, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 5, nullptr);
 		openGLContext.extensions.glVertexAttribPointer(texCoord->attributeID, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (GLvoid*)(sizeof(float) * 3));
 		openGLContext.extensions.glEnableVertexAttribArray(position->attributeID);
 		openGLContext.extensions.glEnableVertexAttribArray(texCoord->attributeID);
 
+		// D R A W  C A N V A S
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 
+		// Disable vertex attributes and unbind our buffer
 		openGLContext.extensions.glDisableVertexAttribArray(position->attributeID);
 		openGLContext.extensions.glDisableVertexAttribArray(texCoord->attributeID);
 		openGLContext.extensions.glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -151,8 +142,6 @@ private:
 //==============================================================================
 GLView::GLView(const String& shader, SBCodeEditor* codeEditor)
 {
-    // In your constructor, you should add any child components, and
-    // initialise any special settings that your component needs.
 	m_strShader = shader;
 	m_pCodeEditor = codeEditor;
 	m_bPaused = false;
@@ -178,22 +167,29 @@ void GLView::render()
 	float scale;
 	double newTime = 0.0;
 
+	// Check if global timer is exist
 	if (SBTimer::g_pTimerInstance)
 	{
 		jassert(OpenGLHelpers::isContextActive());
+
+		// Clear screen
 		OpenGLHelpers::clear(juce::Colour((uint8)0, (uint8)0, (uint8)0, (uint8)0));
 		scale = (float)openGLContext.getRenderingScale();
 
+		// Compile shader
 		if(!m_bWait)
 			compileShader();
 
+		// Enable blending and set the viewport size
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glViewport(0, 0, roundToInt(scale * getWidth()), roundToInt(scale * getHeight()));
 
+		// Use our shader and render to the canvas
 		m_pShader->use();
 		m_pMainCanvas->render();
 
+		// Don't forget to update our global timer
 		if (m_bPaused != true)
 			newTime = SBTimer::g_pTimerInstance->getTime();
 		else
@@ -209,9 +205,6 @@ void GLView::paint (Graphics& g)
 
 void GLView::resized()
 {
-    // This method is where you should set the bounds of any child
-    // components that your component contains..
-
 }
 
 void GLView::paused(bool state)
@@ -242,9 +235,11 @@ void GLView::compileShader()
 		String vertexShader(g_pGlVertexShader);
 		std::unique_ptr<OpenGLShaderProgram> newShader(new OpenGLShaderProgram(openGLContext));
 
+		// Get GLSL version
 		double version = OpenGLShaderProgram::getLanguageVersion() * 100;
 		m_strShader = "#version " + String(version) + "\n" + g_pGlFragShaderUniforms + m_strShader;
 
+		// C O M P I L E
 		if (newShader->addVertexShader(OpenGLHelpers::translateVertexShaderToV3(vertexShader))
 			&& newShader->addFragmentShader(OpenGLHelpers::translateFragmentShaderToV3(m_strShader))
 			&& newShader->link())
@@ -260,8 +255,10 @@ void GLView::compileShader()
 		}
 		else
 		{
+			// If failed, we throw the error message
 			m_strLastError = newShader->getLastError();
 
+			// Don't use the shader!
 			newShader.reset();
 			if(m_pShader.get())
 				m_pShader->use();
