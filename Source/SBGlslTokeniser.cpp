@@ -254,10 +254,7 @@ int SBGlslTokeniser::readNextToken(CodeDocument::Iterator & source)
 				if (ccc == 0 || (ccc == '/' && star))
 					break;
 
-				if (ccc == '*')
-					star = true;
-				else
-					star = false;
+				star = (ccc == '*');
 			}
 
 			return tokenType_comment;

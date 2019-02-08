@@ -116,7 +116,7 @@ struct MainCanvas
 		openGLContext.extensions.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 
-	GLuint vertexBuffer, indexBuffer;
+	GLuint vertexBuffer, indexBuffer, uniformBuffer;
 	OpenGLContext& openGLContext;
 	std::unique_ptr<OpenGLShaderProgram::Attribute> position, texCoord;
 	std::unique_ptr<OpenGLShaderProgram::Uniform> fTime, fResolution, fFps, iFrameCounter;
