@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include "../JuceLibraryCode/JuceHeader.h"
 
 class SBTimer
 {
@@ -21,6 +21,6 @@ public:
 	double fCounter;
 
 private:
-	int64_t m_nStartTime;
+	double m_nStartTime;
 	double m_fFreq;
 };
