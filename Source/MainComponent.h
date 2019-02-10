@@ -36,6 +36,7 @@ private:
 	std::unique_ptr<SBShaderView> m_pShaderView;
 	StretchableLayoutManager m_PanelManager;
 	StretchableLayoutResizerBar m_PanelResizer { &m_PanelManager, 1, true };
+	ApplicationCommandManager commandManager;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

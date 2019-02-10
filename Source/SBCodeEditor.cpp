@@ -100,6 +100,42 @@ private:
 
 struct SBFileHelper
 {
+	static void newProject(SBCodeEditor* codeEditor)
+	{
+		GLView* viewer = codeEditor->getViewer();
+		SBCodeEditorContainer* c;
+
+		int numTabs = codeEditor->getCodeEditorContainerCount();
+		for (int i = 0; i < numTabs; i++)
+		{
+			SBCodeEditorContainer* codeEditorTab = dynamic_cast<SBCodeEditorContainer*>(codeEditor->getCodeEditorContainer(i));
+			if (codeEditorTab->isEdited())
+			{
+				int ync = NativeMessageBox::showYesNoCancelBox(AlertWindow::AlertIconType::QuestionIcon, "Message", "Project is not saved.\nDo you want to save current project?");
+				switch (ync)
+				{
+				case 0:
+					return;
+				case 1:
+					// TODO: Create a "Yes" button handler
+					SBFileHelper::saveProjectFile(codeEditor);
+					return;
+				case 2:
+					// TODO: Create a "No" button handler
+					c = codeEditor->getCodeEditorContainer(0);
+					viewer->lock();
+					c->getDocument().replaceAllContent(g_pGlFragmentShader);
+					c->getDocument().clearUndoHistory();
+					c->isEdited() = false;
+					viewer->setShaderCode(0, g_pGlFragmentShader);
+					viewer->unlock();
+					return;
+				}
+				break;
+			}
+		}
+	}
+
 	static void openProjectFile(SBCodeEditor* codeEditor)
 	{
 		FileChooser browse("Please select project file...",
@@ -212,60 +248,37 @@ SBCodeEditor::SBCodeEditor()
 
 	m_pNewBtn.reset(new TextButton("New..."));
 	m_pNewBtn->setSize(80, 25);
-	m_pNewBtn->onClick = [this]() {
-		int numTabs = m_pCodeTabs->getNumTabs();
-		for (int i = 0; i < numTabs; i++)
-		{
-			SBCodeEditorContainer* codeEditor = dynamic_cast<SBCodeEditorContainer*>(m_pCodeTabs->getTabContentComponent(i));
-			if (codeEditor->isEdited())
-			{
-				int ync = NativeMessageBox::showYesNoCancelBox(AlertWindow::AlertIconType::QuestionIcon, "Message", "Project is not saved.\nDo you want to save current project?");
-				switch (ync)
-				{
-				case 0:
-					return;
-				case 1:
-					// TODO: Create a "Yes" button handler
-					SBFileHelper::saveProjectFile(this);
-					return;
-				case 2:
-					// TODO: Create a "No" button handler
-					return;
-				}
-				break;
-			}
-		}
-
+	m_pNewBtn->onClick = [this] {
+		SBFileHelper::newProject(this);
 	};
+	m_pNewBtn->addShortcut(KeyPress('n', ModifierKeys::ctrlModifier, 0));
 	addAndMakeVisible(*m_pNewBtn);
 
 	m_pOpenBtn.reset(new TextButton("Open..."));
 	m_pOpenBtn->setSize(80, 25);
-	m_pOpenBtn->onClick = [this]() {
+	m_pOpenBtn->setCommandToTrigger(nullptr, SBCodeEditorCmdID::openProject, true);
+	m_pOpenBtn->onClick = [this] {
 		SBFileHelper::openProjectFile(this);
 	};
+	m_pOpenBtn->addShortcut(KeyPress('o', ModifierKeys::ctrlModifier, 0));
 	addAndMakeVisible(*m_pOpenBtn);
 
 	m_pSaveBtn.reset(new TextButton("Save..."));
 	m_pSaveBtn->setSize(80, 25);
-	m_pSaveBtn->onClick = [this]() {
+	m_pSaveBtn->setCommandToTrigger(nullptr, SBCodeEditorCmdID::saveProject, true);
+	m_pSaveBtn->onClick = [this] {
 		SBFileHelper::saveProjectFile(this);
 	};
+	m_pSaveBtn->addShortcut(KeyPress('s', ModifierKeys::ctrlModifier, 0));
 	addAndMakeVisible(*m_pSaveBtn);
 
 	m_pCompileBtn.reset(new TextButton("Compile (F5)"));
 	m_pCompileBtn->setSize(100, 25);
-	m_pCompileBtn->onClick = [this]() {
-		SBCodeEditorContainer* codeEditorContainer = dynamic_cast<SBCodeEditorContainer*>(m_pCodeTabs->getTabContentComponent(0));
-		String newMainShader = codeEditorContainer->getDocument().getAllContent();
-
-		if (m_pShaderViewer)
-		{
-			m_pShaderViewer->lock();
-			m_pShaderViewer->setShaderCode(0, newMainShader);
-			m_pShaderViewer->unlock();
-		}
+	m_pCompileBtn->setCommandToTrigger(nullptr, SBCodeEditorCmdID::compileShader, true);
+	m_pCompileBtn->onClick = [this] {
+		compileShader();
 	};
+	m_pCompileBtn->addShortcut(KeyPress(KeyPress::F5Key));
 	addAndMakeVisible(*m_pCompileBtn);
 
 	resized();
@@ -295,6 +308,19 @@ void SBCodeEditor::resized()
 void SBCodeEditor::setShaderViewer(GLView * view)
 {
 	m_pShaderViewer = view;
+}
+
+void SBCodeEditor::compileShader()
+{
+	SBCodeEditorContainer* codeEditorContainer = dynamic_cast<SBCodeEditorContainer*>(m_pCodeTabs->getTabContentComponent(0));
+	String newMainShader = codeEditorContainer->getDocument().getAllContent();
+
+	if (m_pShaderViewer)
+	{
+		m_pShaderViewer->lock();
+		m_pShaderViewer->setShaderCode(0, newMainShader);
+		m_pShaderViewer->unlock();
+	}
 }
 
 CodeDocument& SBCodeEditor::getErrorMessageDocumentFromEditor(int index)

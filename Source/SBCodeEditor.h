@@ -19,6 +19,17 @@ struct SBCodeEditorContainer;
 //==============================================================================
 /*
 */
+
+enum SBCodeEditorCmdID
+{
+	newProject = 1,
+	openProject,
+	saveProject,
+	compileShader,
+
+	numIds
+};
+
 class SBCodeEditor : public Component
 {
 public:
@@ -27,8 +38,8 @@ public:
 
 	void paint(Graphics& g) override;
     void resized() override;
-
 	void setShaderViewer(GLView* view);
+	void compileShader();
 
 	CodeDocument& getErrorMessageDocumentFromEditor(int index);
 	SBCodeEditorContainer* getCodeEditorContainer(int index);

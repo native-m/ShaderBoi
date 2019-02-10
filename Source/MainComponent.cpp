@@ -48,7 +48,6 @@ MainComponent::MainComponent()
 
 	m_pCodeEditor.reset(new SBCodeEditor());
 	m_pShaderView.reset(new SBShaderView(mainShader, m_pCodeEditor.get()));
-
 	m_pCodeEditor->setShaderViewer(m_pShaderView->getShaderViewer());
 
 	addAndMakeVisible(*m_pShaderView);

@@ -22,7 +22,7 @@ void SBTimer::reset()
 double SBTimer::getTime()
 {
 	double endTime = Time::getMillisecondCounterHiRes();
-	return (endTime - m_nStartTime) * 0.001 ;
+	return (endTime - m_nStartTime) * 0.001; // dont use division, cz it was very slow
 }
 
 void SBTimer::update(double newTime)
